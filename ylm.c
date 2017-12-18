@@ -4,7 +4,7 @@
 #include <complex.h>
 #include <math.h>
 #include <gsl/gsl_sf_legendre.h>
-#include "ylm.h"
+#include "lib_spherical.h"
 
 double complex ylm(int l, int m, double th, double phi)
 {

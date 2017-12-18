@@ -1,9 +1,9 @@
-#include "../lib_io/lib_io.h"
-#include "lebedev.h"
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "../lib_io/lib_io.h"
+#include "lib_spherical.h"
 
 #define D2R (1.74532925199433E-02)
 #define PI (3.1415926535897)
