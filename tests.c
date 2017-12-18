@@ -3,9 +3,7 @@
 #include <assert.h>
 #include <math.h>
 #include <complex.h>
-#include "lebedev.h"
-#include "ylm.h"
-#include "tests.h"
+#include "lib_spherical.h"
 #include "../lib_arr/lib_arr.h"
 
 #define PI (3.1415926535897)
@@ -207,6 +205,106 @@ double test_ylm_real_projection_1d(unsigned long np, int leb, int lmax, int tfun
 	free(phip);
 	free(thp);
 	free(vl);
+	free(y);
+	free(vleb);
+	free(wleb);
+	free(phi);
+	free(th);
+
+	return dnorm;
+}
+
+static double fun2d(double k_th, double k_phi, double kp_th, double kp_phi, int tfun)
+{
+	double v[3], k, kp, lam, kx, ky, kz, kpx, kpy, kpz, kd2;
+
+	k = 4.0;
+	kp = 3.0;
+	kx = k * cos(k_phi) * sin(k_th);
+	ky = k * sin(k_phi) * sin(k_th);
+	kz = k * cos(k_th);
+
+	kpx = kp * cos(kp_phi) * sin(kp_th);
+	kpy = kp * sin(kp_phi) * sin(kp_th);
+	kpz = kp * cos(kp_th);
+
+	kd2 = (kx - kpx) * (kx - kpx) + (ky - kpy) * (ky - kpy) + (kz - kpz) * (kz - kpz);
+
+	lam = 5000.0;
+
+	v[0] = lam / (938 * 938 + kd2 * 197.0);
+	v[1] = kd2;
+	v[2] = kx * ky * kx + kpx * kpy * kpz;
+
+	return v[tfun];
+}
+
+double test_ylm_real_projection_2d(unsigned long np, int leb, int lmax, int tfun, char *path)
+{
+	double *vleb, *vll, *y, *yp, *th, *phi, *wleb, *thp, *phip, *va, *vp, dnorm;
+	unsigned long i, j, nl, np2, nleb;
+
+	fprintf(stderr, "test_ylm_real_projection_2d() test #%d %s:%d\n", tfun, __FILE__, __LINE__);
+
+	nl = (unsigned long)(lmax * lmax);
+
+	get_lebedev_grid(&th, &phi, &wleb, leb, &nleb, path);
+	assert(th);
+	assert(phi);
+	assert(wleb);
+
+	vleb = malloc(nleb * nleb * sizeof(double));
+	assert(vleb);
+
+	for (i = 0; i < nleb; i++) {
+		for (j = 0; j < nleb; j++) {
+			vleb[i * nleb + j] = fun2d(th[i], phi[i], th[j], phi[j], tfun);
+		}
+	}
+
+	y = get_ylm_real_matrix(lmax, th, phi, nleb);
+	assert(y);
+
+	vll = get_sph_real_coeff(vleb, wleb, y, nleb, nl);
+	assert(vll);
+
+	thp = malloc(np * sizeof(double));
+	assert(thp);
+	phip = malloc(np * sizeof(double));
+	assert(phip);
+	va = malloc(np * np * sizeof(double));
+	assert(va);
+
+	for (i = 0; i < np; i++) {
+		thp[i] = PI * rand() / RAND_MAX;
+		phip[i] = 2 * PI * rand() / RAND_MAX;
+	}
+
+	for (i = 0; i < np; i++) {
+		for (j = 0; j < np; j++) {
+			va[i * np + j] = fun2d(thp[i], phip[i], thp[j], phip[j], tfun);
+		}
+	}
+
+	yp = get_ylm_real_matrix(lmax, thp, phip, np);
+	assert(yp);
+
+	vp = get_rev_project_real(vll, yp, nl, np);
+	assert(vp);
+
+	np2 = np * np;
+	for (i = 0; i < np2; i++) {
+		vp[i] = fabs(va[i] - vp[i]);
+	}
+
+	dnorm = get_norm_real(vp, np2);
+
+	free(yp);
+	free(vp);
+	free(va);
+	free(phip);
+	free(thp);
+	free(vll);
 	free(y);
 	free(vleb);
 	free(wleb);
