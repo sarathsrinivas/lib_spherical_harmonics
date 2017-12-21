@@ -135,7 +135,7 @@ static double fun(int tfun, double th, double phi)
 
 	ret[0] = 1 + x + y2 + x2 * y + x2 * x2 + y2 * y2 * y + x2 * y2 * z2;
 	ret[1] = x * y * z;
-	ret[2] = 1 + tanh(0.1 * (z - x - y));
+	ret[2] = 1 + tanh(0.01 * (z - x - y));
 
 	return ret[tfun];
 }
@@ -216,7 +216,7 @@ double test_ylm_real_projection_1d(unsigned long np, int leb, int lmax, int tfun
 
 static double fun2d(double k_th, double k_phi, double kp_th, double kp_phi, int tfun)
 {
-	double v[3], k, kp, lam, kx, ky, kz, kpx, kpy, kpz, kd2;
+	double v[5], k, kp, lam, kx, ky, kz, kpx, kpy, kpz, kd2, ks2, ksp2, kdp2, px, py, pz;
 
 	k = 4.0;
 	kp = 3.0;
@@ -228,13 +228,24 @@ static double fun2d(double k_th, double k_phi, double kp_th, double kp_phi, int 
 	kpy = kp * sin(kp_phi) * sin(kp_th);
 	kpz = kp * cos(kp_th);
 
+	px = 1.0;
+	py = 4.0;
+	pz = 3.0;
+
 	kd2 = (kx - kpx) * (kx - kpx) + (ky - kpy) * (ky - kpy) + (kz - kpz) * (kz - kpz);
+	ks2 = (kx + kpx) * (kx + kpx) + (ky + kpy) * (ky + kpy) + (kz + kpz) * (kz + kpz);
+	ksp2 = (kx + kpx + px) * (kx + kpx + px) + (ky + kpy + py) * (ky + kpy + py)
+	       + (kz + kpz + pz) * (kz + kpz + pz);
+	kdp2 = (kx + kpx - px) * (kx + kpx - px) + (ky + kpy - py) * (ky + kpy - py)
+	       + (kz + kpz - pz) * (kz + kpz - pz);
 
 	lam = 5000.0;
 
 	v[0] = lam / (938 * 938 + kd2 * 197.0);
-	v[1] = kd2;
-	v[2] = kx * ky * kx + kpx * kpy * kpz;
+	v[1] = ks2;
+	v[2] = ksp2;
+	v[3] = kdp2;
+	v[4] = exp(0.001 * (ks2 + kdp2 + ksp2));
 
 	return v[tfun];
 }
