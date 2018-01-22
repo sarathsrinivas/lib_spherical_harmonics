@@ -14,6 +14,8 @@ double complex *get_ylm_matrix(int lmax, double *th, double *phi, unsigned long 
 double complex *get_sph_coeff(double *v, double *wleb, double complex *y, unsigned long nleb, unsigned long nl);
 double complex *get_ylm_orthonormality(double *wleb, double complex *y, unsigned long nl, unsigned long nleb);
 double complex *get_rev_project(double complex *vll, double complex *y, unsigned long nl, unsigned long nleb);
+/* ROATATION */
+int rodrigues_rot_3d(double *v, double *z, double *vr);
 /* TESTS */
 double test_get_lebedev_grid(int leb, int tfun, char *leb_path);
 double test_ylm_orthonormality(int leb, int lmax, char *leb_path);
