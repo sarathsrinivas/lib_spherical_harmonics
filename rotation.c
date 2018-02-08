@@ -7,10 +7,13 @@
 
 static int sph_to_cart(const double *v_sph, double *v_cart)
 {
+	double sin_th;
 
-	v_cart[0] = v_sph[0] * cos(v_sph[2]) * sin(v_sph[1]);
-	v_cart[1] = v_sph[0] * sin(v_sph[2]) * sin(v_sph[1]);
-	v_cart[2] = v_sph[0] * cos(v_sph[1]);
+	sin_th = sqrt(2 - v_sph[1] * v_sph[1]);
+	sin_th = sqrt(sin_th * sin_th - 1);
+	v_cart[0] = v_sph[0] * cos(v_sph[2]) * sin_th;
+	v_cart[1] = v_sph[0] * sin(v_sph[2]) * sin_th;
+	v_cart[2] = v_sph[0] * v_sph[1];
 
 	return 0;
 }
@@ -36,14 +39,17 @@ static double get_dot_prod(const double *v1, const double *v2)
 
 int rodrigues_rot(const double *v, double th, const double *nc, double *vr)
 {
-	double cos_th, sin_th, vrc[3], nxv[3], vc[3], ndotv;
+	double vrc[3], nxv[3], vc[3], ndotv, vrt, vrct, sin_vr1;
+	double cos_th, sin_th, sin_vth;
 
-	vc[0] = cos(v[2]) * sin(v[1]);
-	vc[1] = sin(v[2]) * sin(v[1]);
-	vc[2] = cos(v[1]);
+	sin_vth = sqrt(2 - v[1] * v[1]);
+	sin_vth = sqrt(sin_vth * sin_vth - 1);
+	vc[0] = cos(v[2]) * sin_vth;
+	vc[1] = sin(v[2]) * sin_vth;
+	vc[2] = v[1];
 
-	cos_th = cos(th);
-	sin_th = sin(th);
+	cos_th = th;
+	sin_th = -sqrt(1 - th * th);
 
 	nxv[0] = nc[1] * vc[2] - nc[2] * vc[1];
 	nxv[1] = -nc[0] * vc[2] + nc[2] * vc[0];
@@ -55,8 +61,10 @@ int rodrigues_rot(const double *v, double th, const double *nc, double *vr)
 	vrc[1] = vc[1] * cos_th + nxv[1] * sin_th + nc[1] * ndotv * (1 - cos_th);
 	vrc[2] = vc[2] * cos_th + nxv[2] * sin_th + nc[2] * ndotv * (1 - cos_th);
 
+	vrc[2] = 1E-14 * floor(vrc[2] * 1E14);
+
 	vr[0] = v[0] * sqrt(vrc[0] * vrc[0] + vrc[1] * vrc[1] + vrc[2] * vrc[2]);
-	vr[1] = acos(vrc[2]);
+	vr[1] = vrc[2];
 	vr[2] = atan2(vrc[1], vrc[0]);
 
 	return 0;
@@ -73,15 +81,15 @@ double test_rodrigues_rot(unsigned long nt)
 	err = 0;
 	for (i = 0; i < nt; i++) {
 		p[0] = 2.0;
-		p[1] = 0;
+		p[1] = cos(0);
 		p[2] = 0;
 
 		k[0] = 2.0;
-		k[1] = 0.6 * PI;
+		k[1] = cos(0.5 * PI);
 		k[2] = 2 * PI * rand() / (1.0 + RAND_MAX);
 
 		kp[0] = 2.0;
-		kp[1] = PI * rand() / (1.0 + RAND_MAX);
+		kp[1] = cos(PI * rand() / (1.0 + RAND_MAX));
 		kp[2] = 2 * PI * rand() / (1.0 + RAND_MAX);
 
 		sph_to_cart(k, kc);
@@ -100,9 +108,9 @@ double test_rodrigues_rot(unsigned long nt)
 		d_p_kp = get_distance(pc, kpc);
 		d_k_p = get_distance(kc, pc);
 
-		rodrigues_rot(p, -k[1], nc, pk);
-		rodrigues_rot(k, -k[1], nc, kk);
-		rodrigues_rot(kp, -k[1], nc, kpk);
+		rodrigues_rot(p, k[1], nc, pk);
+		rodrigues_rot(k, k[1], nc, kk);
+		rodrigues_rot(kp, k[1], nc, kpk);
 
 		sph_to_cart(kk, kkc);
 		sph_to_cart(pk, pkc);
@@ -124,8 +132,8 @@ double test_rodrigues_rot(unsigned long nt)
 		err += fabs(d_k_p - d_kk_pk);
 		err += fabs(d_p_kp - d_pk_kpk);
 
-		printf("%+.15E %+.15E %+.15E %+.15E %+.15E\n", k[1] / PI, k[2] / PI, kp[1] / PI, kp[2] / PI,
-		       err);
+		printf("%+.19E %+.19E %+.19E %+.19E %+.19E %+.19E\n", kk[0], kk[1], kk[2], kkc[0], kkc[1],
+		       kkc[2]);
 	}
 
 	return err;
